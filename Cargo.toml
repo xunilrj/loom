@@ -27,6 +27,7 @@ checkpoint = ["serde", "serde_json"]
 futures = ["futures-util"]
 
 [dependencies]
+log = "0.4.8"
 cfg-if = "0.1.6"
 scoped-tls = "0.1.2"
 

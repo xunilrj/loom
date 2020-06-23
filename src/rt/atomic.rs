@@ -34,6 +34,7 @@ use crate::rt::object;
 use crate::rt::{
     self, thread, Access, Numeric, Synchronize, VersionVec, MAX_ATOMIC_HISTORY, MAX_THREADS,
 };
+use log::trace;
 
 use std::cmp;
 use std::marker::PhantomData;
@@ -160,7 +161,7 @@ pub(crate) fn fence(ordering: Ordering) {
     });
 }
 
-impl<T: Numeric> Atomic<T> {
+impl<T: Numeric + std::fmt::Debug> Atomic<T> {
     /// Create a new, atomic cell initialized with the provided value
     pub(crate) fn new(value: T, location: Location) -> Atomic<T> {
         rt::execution(|execution| {
@@ -246,6 +247,8 @@ impl<T: Numeric> Atomic<T> {
         f: F,
     ) -> Result<T, E>
     where
+        T: std::fmt::Debug,
+        E: std::fmt::Debug,
         F: FnOnce(T) -> Result<T, E>,
     {
         self.branch(Action::Rmw);
@@ -390,6 +393,14 @@ impl State {
 
         store.first_seen.touch(threads);
         store.sync.sync_load(threads, ordering);
+
+        trace!(
+            "{}: return={:?} : {}",
+            location,
+            store.value,
+            location.show_code()
+        );
+
         store.value
     }
 
@@ -475,10 +486,26 @@ impl State {
                 let sync = self.stores[index].sync;
                 self.store(threads, sync, next, success);
 
+                trace!(
+                    "{}: prev={:?}, next={:?} : {}",
+                    location,
+                    prev,
+                    next,
+                    location.show_code()
+                );
+
                 Ok(prev)
             }
             Err(e) => {
                 self.stores[index].sync.sync_load(threads, failure);
+
+                trace!(
+                    "{}: failed prev={:?} : {}",
+                    location,
+                    prev,
+                    location.show_code()
+                );
+
                 Err(e)
             }
         }

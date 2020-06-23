@@ -141,6 +141,33 @@ mod cfg {
         pub(crate) fn is_captured(&self) -> bool {
             self.0.is_some()
         }
+
+        #[cfg(not(loom_show_code))]
+        pub(crate) fn show_code(&self) -> String {
+            "".to_owned()
+        }
+
+        //TODO: Obviously need optimization
+        #[cfg(loom_show_code)]
+        pub(crate) fn show_code(&self) -> String {
+            match self.0 {
+                Some(l) => {
+                    use std::fs::File;
+                    use std::io::{prelude::*, BufReader};
+                    let file = File::open(l.file()).unwrap();
+                    let reader = BufReader::new(file);
+                    reader
+                        .lines()
+                        .skip((l.line() - 1) as usize)
+                        .next()
+                        .unwrap()
+                        .unwrap()
+                        .trim()
+                        .to_owned()
+                }
+                None => "".to_owned(),
+            }
+        }
     }
 
     impl fmt::Display for Location {
@@ -172,6 +199,10 @@ mod cfg {
 
         pub(crate) fn is_captured(&self) -> bool {
             false
+        }
+
+        pub(crate) fn show_code(&self) -> String {
+            "".to_owned()
         }
     }
 

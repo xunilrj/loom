@@ -10,7 +10,7 @@ pub(crate) struct Atomic<T> {
 
 impl<T> Atomic<T>
 where
-    T: rt::Numeric,
+    T: rt::Numeric + std::fmt::Debug,
 {
     pub(crate) fn new(value: T, location: rt::Location) -> Atomic<T> {
         let state = rt::Atomic::new(value, location);
@@ -52,6 +52,8 @@ where
     #[cfg_attr(loom_nightly, track_caller)]
     fn try_rmw<F, E>(&self, success: Ordering, failure: Ordering, f: F) -> Result<T, E>
     where
+        T: std::fmt::Debug,
+        E: std::fmt::Debug,
         F: FnOnce(T) -> Result<T, E>,
     {
         self.state.rmw(location!(), success, failure, f)
